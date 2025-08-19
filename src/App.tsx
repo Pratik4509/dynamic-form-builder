@@ -8,6 +8,8 @@ function App() {
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [currentStep, setCurrentStep] = useState(0);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
 
     useEffect(() => {
         fetchSchema().then(setSchema);
@@ -106,15 +108,40 @@ function App() {
         }
     };
 
-    const handleSubmit = () => {
-        if (validateStep()) {
-            console.log("✅ Form submitted:", formData);
-            alert("Form submitted successfully!");
+    const handleSubmit = async () => {
+        if (!schema) return;
+
+        const isStepValid = validateStep();
+        if (!isStepValid) return;
+
+        try {
+            // mock submission
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            setStatus({
+                type: "success",
+                message: schema?.submit?.successMessage || "Form submitted successfully!"
+            });
+
+            console.log("Submitted Data:", formData);
+        } catch (err) {
+            setStatus({
+                type: "error",
+                message: schema.submit?.errorMessage || "Something went wrong. Please try again."
+            });
         }
     };
 
     return (
         <div className="max-w-lg mx-auto p-6 bg-white shadow-md rounded-md">
+            {status && (
+                <div
+                    className={`mt-4 p-2 rounded ${status.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
+                >
+                    {status.message}
+                </div>
+            )}
             <h1 className="text-3xl font-bold mb-2 text-center text-indigo-600">
                 {schema?.title}
             </h1>
