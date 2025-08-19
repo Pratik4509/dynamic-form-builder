@@ -1,7 +1,7 @@
 export type FieldType = 'text' | 'email' | 'number' | 'date' | 'select' | 'checkbox';
 
 export interface FieldConfig {
-    id?: string
+    id: string 
     label?: string;
     type?: FieldType;
     placeholder?: string;
