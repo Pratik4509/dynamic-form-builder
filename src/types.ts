@@ -7,7 +7,7 @@ export interface FieldConfig {
     placeholder?: string;
     required?: boolean;
     options?: { label: string; value: string }[];
-    validations?: {
+    validation?: {
         message?: string;
         pattern?: string;
         min?: number;
@@ -28,7 +28,7 @@ export interface FormSchema {
     formId:string
     title?: string;
     description?: string;
-    steps?: StepConfig[];
+    steps: StepConfig[];
     submit?: {
         label?: string
         successMessage?: string

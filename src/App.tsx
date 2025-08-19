@@ -1,30 +1,75 @@
 import { useEffect, useState } from "react";
 import { fetchSchema } from "./apis";
-import type { FormSchema } from "./types";
+import type { FormSchema, FieldConfig } from "./types";
 import DynamicField from "./components/DynamicField";
-import type { FieldConfig } from "./types";
 
 function App() {
     const [schema, setSchema] = useState<FormSchema | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [currentStep, setCurrentStep] = useState(0);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         fetchSchema().then(setSchema);
     }, []);
 
     if (!schema) {
-        return <div className="text-center py-6 text-gray-600">Loading form...</div>;
+        return <div>Loading form...</div>;
     }
 
-    const step = schema?.steps[currentStep];
+    const step = schema.steps[currentStep];
 
     const handleChange = (id: string, value?: any) => {
         setFormData((prev) => ({ ...prev, [id]: value }));
+        setErrors((prev) => ({ ...prev, [id]: "" }));
     };
 
+    const validateStep = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        step.fields.forEach((field: FieldConfig) => {
+            const value = formData[field.id];
+
+            // 1. Required check
+            if (field.required && (!value || value === "")) {
+                newErrors[field.id] = field?.validation?.message || `${field.label} is required`;
+                return;
+            }
+
+            if (typeof value === "number") {
+                if (field.validation?.min !== undefined && value < field.validation.min) {
+                    newErrors[field.id] = field.validation.message || `${field.label} is too small`;
+                }
+                if (field.validation?.max !== undefined && value > field.validation.max) {
+                    newErrors[field.id] = field.validation.message || `${field.label} is too large`;
+                }
+            }
+
+            if (typeof value === "string") {
+                if (field.validation?.minLength !== undefined && value.length < field.validation.minLength) {
+                    newErrors[field.id] = field.validation.message || `${field.label} is too short`;
+                }
+                if (field.validation?.maxLength !== undefined && value.length > field.validation.maxLength) {
+                    newErrors[field.id] = field.validation.message || `${field.label} is too long`;
+                }
+            }
+
+            if (field.validation?.pattern) {
+                const regex = new RegExp(field.validation.pattern);
+
+                if (value && !regex.test(value)) {
+                    newErrors[field.id] = field.validation.message || `${field.label} format is invalid`;
+                }
+            }
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+
     const handleNext = () => {
-        if (currentStep < schema.steps.length - 1) {
+        if (validateStep()) {
             setCurrentStep((prev) => prev + 1);
         }
     };
@@ -36,8 +81,10 @@ function App() {
     };
 
     const handleSubmit = () => {
-        console.log("✅ Form submitted:", formData);
-        alert("Form submitted successfully!");
+        if (validateStep()) {
+            console.log("✅ Form submitted:", formData);
+            alert("Form submitted successfully!");
+        }
     };
 
     return (
@@ -56,12 +103,13 @@ function App() {
                     style={{ width: `${((currentStep + 1) / schema.steps.length) * 100}%` }}
                 />
             </div>
-            {step?.fields.map((field: FieldConfig) => (
+            {step.fields.map((field: FieldConfig) => (
                 <div key={field.id} className="mb-4">
                     <DynamicField
                         field={field}
-                        value={formData[field?.id] ?? ""}
-                        handleChange={(id, value) => handleChange(id, value)}
+                        value={formData[field.id] ?? ""}
+                        handleChange={handleChange}
+                        error={errors[field.id]}
                     />
                 </div>
             ))}
