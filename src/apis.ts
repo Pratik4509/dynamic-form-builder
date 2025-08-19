@@ -7,12 +7,3 @@ export async function fetchSchema(): Promise<FormSchema> {
     const res = await axios.get<FormSchema>(SCHEMA_URL);
     return res.data;
 }
-
-export async function submitForm(endpoint: string | undefined, payload: any) {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-        ok: true,
-        message: 'Submitted successfully',
-        data: payload,
-    };
-}
