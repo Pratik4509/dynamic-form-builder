@@ -1,7 +1,12 @@
 export type FieldType = 'text' | 'email' | 'number' | 'date' | 'select' | 'checkbox';
 
+export interface VisibleWhenConfig {
+    field: string;
+    value: any;
+}
+
 export interface FieldConfig {
-    id: string 
+    id: string
     label?: string;
     type?: FieldType;
     placeholder?: string;
@@ -16,6 +21,7 @@ export interface FieldConfig {
         minLength?: number;
         maxLength?: number;
     };
+    visibleWhen?: VisibleWhenConfig;
 }
 
 export interface StepConfig {
@@ -25,7 +31,7 @@ export interface StepConfig {
 }
 
 export interface FormSchema {
-    formId:string
+    formId: string
     title?: string;
     description?: string;
     steps: StepConfig[];

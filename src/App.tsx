@@ -19,6 +19,16 @@ function App() {
 
     const step = schema.steps[currentStep];
 
+    const getVisibleFields = (fields: FieldConfig[]) => {
+        return fields.filter((field) => {
+            if (!field.visibleWhen) return true;
+            const dependentValue = formData[field.visibleWhen.field];
+            return dependentValue === field.visibleWhen.value;
+        });
+    };
+
+    const visibleFields = getVisibleFields(step.fields);
+
     const handleChange = (id: string, value?: any) => {
         setFormData((prev) => ({ ...prev, [id]: value }));
         setErrors((prev) => ({ ...prev, [id]: "" }));
@@ -27,7 +37,9 @@ function App() {
     const validateStep = (): boolean => {
         const newErrors: Record<string, string> = {};
 
-        step.fields.forEach((field: FieldConfig) => {
+        const visibleFields = getVisibleFields(step.fields);
+
+        visibleFields.forEach((field: FieldConfig) => {
             const value = formData[field.id];
 
             // 1. Required check
@@ -64,7 +76,7 @@ function App() {
                 }
 
                 if (age < field.validation.minAge) {
-                    newErrors[field.id] = field.validation.message ||  `${field.label} is invalid`;
+                    newErrors[field.id] = field.validation.message || `${field.label} is invalid`;
                 }
             }
 
@@ -117,7 +129,7 @@ function App() {
                     style={{ width: `${((currentStep + 1) / schema.steps.length) * 100}%` }}
                 />
             </div>
-            {step.fields.map((field: FieldConfig) => (
+            {visibleFields.map((field) => (
                 <div key={field.id} className="mb-4">
                     <DynamicField
                         field={field}
