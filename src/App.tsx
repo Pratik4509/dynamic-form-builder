@@ -54,6 +54,20 @@ function App() {
                 }
             }
 
+            if (field.validation?.minAge && field.type === "date" && value) {
+                const today = new Date();
+                const dob = new Date(value);
+                let age = today.getFullYear() - dob.getFullYear();
+                const monthDiff = today.getMonth() - dob.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+
+                if (age < field.validation.minAge) {
+                    newErrors[field.id] = field.validation.message ||  `${field.label} is invalid`;
+                }
+            }
+
             if (field.validation?.pattern) {
                 const regex = new RegExp(field.validation.pattern);
 
