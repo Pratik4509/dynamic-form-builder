@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchSchema } from "./apis";
-import type { FormSchema, FieldConfig } from "./types";
+import type { FormSchema, FieldConfig, SubmissionSummary } from "./types";
 import DynamicField from "./components/DynamicField";
+import ConfirmationView from "./components/ConfirmationView";
 
 function App() {
     const [schema, setSchema] = useState<FormSchema | null>(null);
@@ -9,7 +10,12 @@ function App() {
     const [currentStep, setCurrentStep] = useState(0);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+    const [submissionSummary, setSubmissionSummary] = useState<SubmissionSummary | null>(() => {
+        const saved = localStorage.getItem("submissionSummary");
+        return saved ? JSON.parse(saved) : null;
+    });
 
+    const [showConfirmation, setShowConfirmation] = useState(false);
 
     useEffect(() => {
         fetchSchema().then(setSchema);
@@ -115,15 +121,24 @@ function App() {
         if (!isStepValid) return;
 
         try {
-            // mock submission
             await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            const newSummary: SubmissionSummary = {
+                timestamp: new Date().toISOString(),
+                data: formData,
+            };
+
+            setSubmissionSummary(newSummary);
+            localStorage.setItem("submissionSummary", JSON.stringify(newSummary));
+
+            setShowConfirmation(true);
 
             setStatus({
                 type: "success",
-                message: schema?.submit?.successMessage || "Form submitted successfully!"
+                message: schema.submit?.successMessage || "Form submitted successfully!"
             });
-
-            console.log("Submitted Data:", formData);
+            setFormData({})
+            setCurrentStep(0)
         } catch (err) {
             setStatus({
                 type: "error",
@@ -134,64 +149,101 @@ function App() {
 
     return (
         <div className="max-w-lg mx-auto p-6 bg-white shadow-md rounded-md">
-            {status && (
-                <div
-                    className={`mt-4 p-2 rounded ${status.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                        }`}
-                >
-                    {status.message}
-                </div>
-            )}
-            <h1 className="text-3xl font-bold mb-2 text-center text-indigo-600">
-                {schema?.title}
-            </h1>
-            <p className="text-gray-500 mb-6 text-center">{schema?.description}</p>
 
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                {`Step ${currentStep + 1} : ${step?.title}`}
-            </h2>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-                <div
-                    className="bg-blue-500 h-2 rounded-full transition-all"
-                    style={{ width: `${((currentStep + 1) / schema.steps.length) * 100}%` }}
+            {showConfirmation && submissionSummary ? (
+                <ConfirmationView
+                    summary={submissionSummary}
+                    onBack={() => setShowConfirmation(false)}
                 />
-            </div>
-            {visibleFields.map((field) => (
-                <div key={field.id} className="mb-4">
-                    <DynamicField
-                        field={field}
-                        value={formData[field.id] ?? ""}
-                        handleChange={handleChange}
-                        error={errors[field.id]}
-                    />
-                </div>
-            ))}
+            ) : (
+                <>
+                    {status && (
+                        <div
+                            className={`mt-4 p-2 rounded ${status.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                }`}
+                        >
+                            {status.message}
+                        </div>
+                    )}
 
-            <div className="flex justify-between mt-6">
-                {currentStep > 0 && (
-                    <button
-                        onClick={handleBack}
-                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md"
-                    >
-                        Back
-                    </button>
-                )}
-                {currentStep < schema?.steps.length - 1 ? (
-                    <button
-                        onClick={handleNext}
-                        className="ml-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md"
-                    >
-                        Next
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleSubmit}
-                        className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md"
-                    >
-                        Submit
-                    </button>
-                )}
-            </div>
+                    {submissionSummary && (
+                        <div className="mt-4 p-2 bg-blue-50 text-blue-700 rounded flex justify-between items-center">
+                            <span>
+                                Last submission: {new Date(submissionSummary.timestamp).toLocaleString()}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    className="px-3 py-1 bg-blue-500 text-white rounded"
+                                    onClick={() => setShowConfirmation(true)}
+                                >
+                                    View Summary
+                                </button>
+                                <button
+                                    className="px-3 py-1 bg-red-500 text-white rounded"
+                                    onClick={() => {
+                                        setSubmissionSummary(null);
+                                        localStorage.removeItem("submissionSummary");
+                                    }}
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <h1 className="text-3xl font-bold mb-2 text-center text-indigo-600">
+                        {schema?.title}
+                    </h1>
+                    <p className="text-gray-500 mb-6 text-center">{schema?.description}</p>
+
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                        {`Step ${currentStep + 1} : ${step?.title}`}
+                    </h2>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                        <div
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${((currentStep + 1) / schema.steps.length) * 100}%` }}
+                        />
+                    </div>
+                    {visibleFields.map((field) => (
+                        <div key={field.id} className="mb-4">
+                            <DynamicField
+                                field={field}
+                                value={formData[field.id] ?? ""}
+                                handleChange={handleChange}
+                                error={errors[field.id]}
+                            />
+                        </div>
+                    ))}
+
+                    <div className="flex justify-between mt-6">
+                        {currentStep > 0 && (
+                            <button
+                                onClick={handleBack}
+                                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md"
+                            >
+                                Back
+                            </button>
+                        )}
+                        {currentStep < schema?.steps.length - 1 ? (
+                            <button
+                                onClick={handleNext}
+                                className="ml-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md"
+                            >
+                                Next
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubmit}
+                                className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md"
+                            >
+                                Submit
+                            </button>
+                        )}
+                    </div>
+                </>
+            )
+            }
         </div>
     );
 }

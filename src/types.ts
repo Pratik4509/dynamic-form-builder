@@ -24,6 +24,11 @@ export interface FieldConfig {
     visibleWhen?: VisibleWhenConfig;
 }
 
+export interface SubmissionSummary {
+    timestamp: string;
+    data: Record<string, any>;
+}
+
 export interface StepConfig {
     stepId?: string
     title?: string;
