@@ -50,9 +50,8 @@ function App() {
         visibleFields.forEach((field: FieldConfig) => {
             const value = formData[field.id];
 
-            // 1. Required check
             if (field.required && (!value || value === "")) {
-                newErrors[field.id] = field?.validation?.message || `${field.label} is required`;
+                newErrors[field.id] = `${field.label} is required`;
                 return;
             }
 
